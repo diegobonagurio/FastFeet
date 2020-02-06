@@ -22,5 +22,6 @@ routes.put('/recipient/:id', RecipientController.update);
 routes.post('/files', upload.single('file'), FileController.store);
 
 routes.post('/deliverymans', DeliverymanController.store);
+routes.put('/deliverymans/:id', DeliverymanController.update);
 
 export default routes;

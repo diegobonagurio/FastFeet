@@ -27,52 +27,35 @@ class DeliverymanController {
     return res.json(deliveryman);
   }
 
-  // async update(req, res) {
-  // const schema = Yup.object().shape({
-  // name: Yup.string(),
-  // rua: Yup.string().required(),
-  // numero: Yup.string().required(),
-  // complemento: Yup.string(),
-  // estado: Yup.string()
-  // .required()
-  // .max(2),
-  // cidade: Yup.string().required(),
-  // cep: Yup.string().required(),
-  // });
-  //
-  //  if (!(await schema.isValid(req.body))) {
-  //  return res.status(400).json({ error: 'Validation Fails' });
-  // }
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      name: Yup.string(),
+      email: Yup.string()
+        .email()
+        .required(),
+      avatar_id: Yup.number(),
+    });
 
-  // const { id } = req.params;
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation Fails' });
+    }
 
-  // const recipient = await Recipient.findByPk(id);
+    const { id } = req.params;
 
-  // if (!recipient) {
-  // return res.json({ error: 'Recipíent does not exist' });
-  // }
+    const deliveryman = await Deliveryman.findByPk(id);
 
-  // const {
-  // name,
-  // rua,
-  // numero,
-  // complemento,
-  // estado,
-  // cidade,
-  // cep,
-  // } = recipient.update(req.body);
+    if (!deliveryman) {
+      return res.json({ error: 'Recipíent does not exist' });
+    }
 
-  // return res.json({
-  // id,
-  // name,
-  // rua,
-  // numero,
-  // complemento,
-  // estado,
-  // cidade,
-  // cep,
-  // });
-  // }
+    const { name, email } = deliveryman.update(req.body);
+
+    return res.json({
+      id,
+      name,
+      email,
+    });
+  }
 }
 
 export default new DeliverymanController();
