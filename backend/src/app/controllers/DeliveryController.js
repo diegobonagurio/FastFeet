@@ -7,9 +7,18 @@ import File from '../models/File';
 
 class DeliveryController {
   async index(req, res) {
-    const delivery = await Delivery.findAll({
-      attributes: ['id', 'product', 'start_date', 'end_date', 'canceled_at'],
+    const deliveries = await Delivery.findAll({
       include: [
+        {
+          model: Deliveryman,
+          as: 'deliveryman',
+          attributes: ['id', 'name', 'email', 'avatar_id'],
+          include: {
+            model: File,
+            as: 'avatar',
+            attributes: ['name', 'path', 'url'],
+          },
+        },
         {
           model: Recipient,
           as: 'recipient',
@@ -25,25 +34,73 @@ class DeliveryController {
           ],
         },
         {
-          model: Deliveryman,
-          as: 'delieryman',
-          attributes: ['id', 'name', 'email'],
-          include: [
-            {
-              model: File,
-              as: 'avatar',
-              attributes: ['path', 'url'],
-            },
-          ],
-        },
-        {
           model: File,
           as: 'signature',
-          attributes: ['id', 'path', 'url'],
+          attributes: ['url', 'path', 'name'],
         },
       ],
+      attributes: [
+        'id',
+        'product',
+        'deliveryman_id',
+        'recipient_id',
+        'canceled_at',
+        'start_date',
+        'end_date',
+      ],
     });
-    return res.json(delivery);
+    return res.json(deliveries);
+  }
+
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      recipient_id: Yup.number(),
+      deliveryman_id: Yup.number(),
+      signature_id: Yup.number(),
+      product: Yup.string(),
+      canceled_at: Yup.date(),
+      start_date: Yup.date(),
+      end_date: Yup.date(),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation fails' });
+    }
+
+    const { deliveryman_id, recipient_id } = req.body;
+
+    const checkDeliverymanExists = await Delivery.findOne({
+      where: { id: deliveryman_id },
+    });
+
+    const checkRecipientExists = await Recipient.findOne({
+      where: { id: recipient_id },
+    });
+
+    if (!(checkDeliverymanExists || checkRecipientExists)) {
+      return res
+        .status(400)
+        .json({ error: 'Deliveryman and Recipient doesnot exists' });
+    }
+
+    if (!checkDeliverymanExists) {
+      return res.status(400).json({ error: 'Deliveryman doesnot exists' });
+    }
+
+    if (!checkRecipientExists) {
+      return res.status(400).json({ error: 'Recipient doesnot exists' });
+    }
+
+    const delivery = await Delivery.findByPk(req.params.id);
+
+    const { id, product } = await delivery.update(req.body);
+
+    return res.json({
+      id,
+      product,
+      deliveryman_id,
+      recipient_id,
+    });
   }
 
   async store(req, res) {
@@ -57,7 +114,7 @@ class DeliveryController {
       return res.status(400).json({ error: 'Validation Fails' });
     }
 
-    const { deliveryman_id, recipient_id } = req.body;
+    const { deliveryman_id, recipient_id, product } = req.body;
 
     const deliveryman = await Deliveryman.findByPk(deliveryman_id);
 
@@ -71,9 +128,29 @@ class DeliveryController {
       return res.status(400).json({ error: 'Recipient doesnot exists ' });
     }
 
-    const delivery = await Delivery.create(req.body);
-
+    const delivery = await Delivery.create({
+      product,
+      deliveryman_id,
+      recipient_id,
+    });
     return res.json(delivery);
+  }
+
+  async delete(req, res) {
+    const { id } = req.params;
+
+    const deliveryExists = await Delivery.findByPk(id);
+
+    if (!deliveryExists) {
+      return res.status(400).json({ error: 'Delivery Not exists ' });
+    }
+
+    await Delivery.destroy({ where: { id } });
+
+    return res
+      .status(200)
+      .json(id)
+      .json({ message: 'Apagado' });
   }
 }
 
