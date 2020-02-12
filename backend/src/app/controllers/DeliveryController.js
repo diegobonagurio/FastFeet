@@ -52,15 +52,11 @@ class DeliveryController {
     return res.json(deliveries);
   }
 
-  async update(req, res) {
+  /* async update(req, res) {
     const schema = Yup.object().shape({
       recipient_id: Yup.number(),
       deliveryman_id: Yup.number(),
-      signature_id: Yup.number(),
       product: Yup.string(),
-      canceled_at: Yup.date(),
-      start_date: Yup.date(),
-      end_date: Yup.date(),
     });
 
     if (!(await schema.isValid(req.body))) {
@@ -94,6 +90,61 @@ class DeliveryController {
     const delivery = await Delivery.findByPk(req.params.id);
 
     const { id, product } = await delivery.update(req.body);
+
+    return res.json({
+      id,
+      product,
+      deliveryman_id,
+      recipient_id,
+    });
+  } */
+
+  async update(req, res) {
+    const idSchema = Yup.object().shape({
+      id: Yup.number().required(),
+    });
+
+    if (!(await idSchema.isValid(req.params))) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+
+    const schema = Yup.object().shape({
+      recipient_id: Yup.number(),
+      deliveryman_id: Yup.number(),
+      signature_id: Yup.number(),
+      product: Yup.string(),
+      canceled_at: Yup.date(),
+      start_date: Yup.date(),
+      end_date: Yup.date(),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation fails' });
+    }
+
+    const { deliveryman_id, recipient_id } = req.body;
+
+    const checkDeliverymanExists = await Delivery.findOne({
+      where: { id: deliveryman_id },
+    });
+
+    if (!checkDeliverymanExists) {
+      return res.status(400).json({ error: 'Deliveryman does not exists' });
+    }
+
+    const checkRecipientExists = await Recipient.findOne({
+      where: { id: recipient_id },
+    });
+
+    if (!checkRecipientExists) {
+      return res.status(400).json({ error: 'Recipient does not exists' });
+    }
+
+    const { id } = req.params;
+
+    const delivery = await Delivery.findByPk(id);
+
+    const { product } = await delivery.update(req.body);
 
     return res.json({
       id,
